@@ -16,24 +16,24 @@ class VpsfreeClient < Formula
 
   def caveats
     <<~EOS
-      Spuštění klienta:
+      Running the client:
         vpsfreectl
 
       ---
-      Tipy pro autentizaci s 2FA (TOTP):
-      Získání tokenu čistě přes CLI příkaz (vpsfreectl token request) často selhává
-      kvůli dvoufázovému ověření. Spolehlivý workaround je vygenerovat token přes cURL:
+      Authentication with 2FA (TOTP) workaround:
+      Generating a token purely via the CLI (vpsfreectl token request) often fails
+      due to two-factor authentication. A reliable workaround is to generate the token via cURL:
 
-      1. Získání pending tokenu:
+      1. Request a pending token:
          PENDING_TOKEN=$(curl -s -X POST https://api.vpsfree.cz/_auth/token/tokens \\
-         -H "Content-Type: application/json" -d '{"user":"tvuj-login","password":"heslo"}')
+         -H "Content-Type: application/json" -d '{"user":"your-username","password":"your-password"}')
 
-      2. Potvrzení tokenu pomocí TOTP z authenticatoru:
+      2. Confirm the token with your TOTP code:
          curl -X POST https://api.vpsfree.cz/_auth/token/tokens/totp \\
          -H "Content-Type: application/json" -d "{\\"token\\":\\"$PENDING_TOKEN\\",\\"code\\":\\"123456\\"}"
 
-      Následně ulož aktivní token do lokální konfigurace pro automatické přihlašování:
-        vpsfreectl --auth token --save tvuj-login
+      Finally, save the active token to your local configuration for automatic login:
+        vpsfreectl --auth token --save your-username
     EOS
   end
 end
