@@ -9,7 +9,7 @@ class VpsfreeClient < Formula
   def install
     ENV["GEM_HOME"] = libexec
     system "gem", "build", "vpsfree-client.gemspec"
-    system "gem", "install", "vpsfree-client-0.20.1.gem"
+    system "gem", "install", "vpsfree-client-0.20.1.gem", "--no-document", "--install-dir", libexec, "--bindir", libexec/"bin"
     
     bin.install libexec/"bin/vpsfreectl"
     bin.env_script_all_files(libexec/"bin", GEM_HOME: ENV["GEM_HOME"])
