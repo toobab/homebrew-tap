@@ -1,0 +1,84 @@
+name: Update Nuvio Alpha Cask
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-cask:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Homebrew Tap
+        uses: actions/checkout@v4
+
+      - name: Check latest Nuvio release
+        id: check_release
+        run: |
+          RELEASE_DATA=$(curl -s https://api.github.com/repos/NuvioMedia/NuvioDesktop/releases)
+          LATEST_TAG=$(echo "$RELEASE_DATA" | jq -r '.[0].tag_name')
+
+          CURRENT_VERSION=$(grep 'version "' Casks/nuvio@alpha.rb | cut -d '"' -f 2)
+
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+
+          if [ "$LATEST_TAG" != "$CURRENT_VERSION" ]; then
+            echo "UPDATED=true" >> $GITHUB_ENV
+          else
+            echo "UPDATED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Calculate SHA256 and update Cask
+        if: env.UPDATED == 'true'
+        run: |
+          TAG="${{ env.LATEST_TAG }}"
+
+          URL_ARM="https://github.com/NuvioMedia/NuvioDesktop/releases/download/${TAG}/Nuvio-macOS-arm64-${TAG}.dmg"
+          URL_INTEL="https://github.com/NuvioMedia/NuvioDesktop/releases/download/${TAG}/Nuvio-macOS-x86_64-${TAG}.dmg"
+
+          echo "Downloading ARM64 DMG..."
+          SHA256_ARM=$(curl -sL "$URL_ARM" | sha256sum | awk '{print $1}')
+
+          echo "Downloading x86_64 DMG..."
+          SHA256_INTEL=$(curl -sL "$URL_INTEL" | sha256sum | awk '{print $1}')
+
+          cat <<EOF > Casks/nuvio@alpha.rb
+          cask "nuvio@alpha" do
+            arch arm: "arm64", intel: "x86_64"
+
+            version "${TAG}"
+            sha256 arm:   "${SHA256_ARM}",
+                   intel: "${SHA256_INTEL}"
+
+            url "https://github.com/NuvioMedia/NuvioDesktop/releases/download/#{version}/Nuvio-macOS-#{arch}-#{version}.dmg"
+            name "Nuvio Alpha"
+            desc "Nuvio Desktop Media Player (Alpha Channel)"
+            homepage "https://github.com/NuvioMedia/NuvioDesktop"
+
+            livecheck do
+              url :url
+              strategy :github_releases
+            end
+
+            app "Nuvio.app"
+
+            zap trash: [
+              "~/Library/Application Support/CrashReporter/Nuvio_*.plist",
+              "~/Library/Application Support/Nuvio",
+              "~/Library/Caches/com.nuvio.media.desktop",
+              "~/Library/Caches/Nuvio",
+              "~/Library/Preferences/com.nuvio.media.desktop.plist",
+              "~/Library/WebKit/com.nuvio.media.desktop",
+            ]
+          end
+          EOF
+
+      - name: Commit and push changes
+        if: env.UPDATED == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/nuvio@alpha.rb
+          git commit -m "nuvio@alpha ${{ env.LATEST_TAG }}"
+          git push
