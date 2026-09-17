@@ -1,0 +1,90 @@
+name: Update DbGate Premium Cask
+
+on:
+  schedule:
+    - cron: '0 */12 * * *' # Běží každých 12 hodin
+  workflow_dispatch:
+
+jobs:
+  update-cask:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Homebrew Tap
+        uses: actions/checkout@v4
+
+      - name: Check latest DbGate release
+        id: check_release
+        run: |
+          # Získá poslední release tag (např. "v7.3.0")
+          RELEASE_DATA=$(curl -s https://api.github.com/repos/dbgate/dbgate/releases)
+          LATEST_TAG=$(echo "$RELEASE_DATA" | jq -r '.[0].tag_name')
+
+          # Odstraní prefix "v" z tagu (v7.3.0 -> 7.3.0)
+          VERSION=${LATEST_TAG#v}
+
+          # Přečte aktuální verzi ze souboru
+          CURRENT_VERSION=$(grep 'version "' Casks/dbgate@premium.rb | cut -d '"' -f 2)
+
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_ENV
+
+          if [ "$VERSION" != "$CURRENT_VERSION" ]; then
+            echo "UPDATED=true" >> $GITHUB_ENV
+          else
+            echo "UPDATED=false" >> $GITHUB_ENV
+          fi
+
+      - name: Calculate SHA256 and update Cask
+        if: env.UPDATED == 'true'
+        run: |
+          VERSION="${{ env.VERSION }}"
+          TAG="${{ env.LATEST_TAG }}"
+
+          URL_ARM="https://github.com/dbgate/dbgate/releases/download/${TAG}/dbgate-premium-${VERSION}-mac_arm64.dmg"
+          URL_INTEL="https://github.com/dbgate/dbgate/releases/download/${TAG}/dbgate-premium-${VERSION}-mac_x64.dmg"
+
+          echo "Downloading ARM64 DMG..."
+          SHA256_ARM=$(curl -sL "$URL_ARM" | sha256sum | awk '{print $1}')
+
+          echo "Downloading x64 DMG..."
+          SHA256_INTEL=$(curl -sL "$URL_INTEL" | sha256sum | awk '{print $1}')
+
+          cat <<EOF > Casks/dbgate@premium.rb
+          cask "dbgate@premium" do
+            arch arm: "arm64", intel: "x64"
+
+            version "${VERSION}"
+            sha256 arm:   "${SHA256_ARM}",
+                   intel: "${SHA256_INTEL}"
+
+            url "https://github.com/dbgate/dbgate/releases/download/v#{version}/dbgate-premium-#{version}-mac_#{arch}.dmg"
+            name "DbGate Premium"
+            desc "Database manager for MySQL, PostgreSQL, SQL Server, MongoDB, SQLite and others"
+            homepage "https://dbgate.org/"
+
+            livecheck do
+              url :url
+              strategy :github_releases
+            end
+
+            app "DbGate Premium.app"
+
+            zap trash: [
+              "~/Library/Caches/org.dbgate.premium",
+              "~/Library/Caches/org.dbgate.premium.ShipIt",
+              "~/Library/HTTPStorages/org.dbgate.premium",
+              "~/Library/Preferences/ByHost/org.dbgate.premium.ShipIt.*.plist",
+              "~/Library/Preferences/org.dbgate.premium.plist",
+            ]
+          end
+          EOF
+
+      - name: Commit and push changes
+        if: env.UPDATED == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/dbgate@premium.rb
+          git commit -m "dbgate@premium ${{ env.VERSION }}"
+          git push
