@@ -249,7 +249,9 @@ html_content = f"""<!DOCTYPE html>
 
             // Formatování čísla s mezerami po tisících
             document.getElementById('statNumber').innerText = total.toLocaleString('cs-CZ').replace(/,/g, ' ');
-            document.getElementById('statTitle').innerText = `Clones ` + (titleSuffix ? `(${titleSuffix})` : '');
+
+            // Oprava sčítání textových řetězců (bez kolize s Python f-stringem)
+            document.getElementById('statTitle').innerText = 'Clones ' + (titleSuffix ? '(' + titleSuffix + ')' : '');
 
             const labels = filtered.map(d => d.date);
             const data = filtered.map(d => d.count);
@@ -268,7 +270,7 @@ html_content = f"""<!DOCTYPE html>
                         fill: true,
                         pointRadius: 0,
                         pointHoverRadius: 5,
-                        tension: 0 // Rovné čáry bez zaoblení pro sparkline efekt
+                        tension: 0
                     }}]
                 }},
                 options: {{
@@ -284,8 +286,8 @@ html_content = f"""<!DOCTYPE html>
                         }}
                     }},
                     scales: {{
-                        x: {{ display: false }}, // Skrytí X osy
-                        y: {{ display: false, min: 0 }} // Skrytí Y osy
+                        x: {{ display: false }},
+                        y: {{ display: false, min: 0 }}
                     }},
                     layout: {{ padding: 0 }},
                     interaction: {{ mode: 'nearest', axis: 'x', intersect: false }}
