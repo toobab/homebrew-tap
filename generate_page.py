@@ -8,6 +8,7 @@ def parse_package(filepath):
     name_match = re.search(r'name\s+[\'"]([^\'"]+)[\'"]', content)
     desc_match = re.search(r'desc\s+[\'"]([^\'"]+)[\'"]', content)
     version_match = re.search(r'version\s+[\'"]([^\'"]+)[\'"]', content)
+    homepage_match = re.search(r'homepage\s+[\'"]([^\'"]+)[\'"]', content)
 
     version_str = "unknown"
     if version_match:
@@ -19,12 +20,23 @@ def parse_package(filepath):
             if ver_search:
                 version_str = ver_search.group(1)
 
+    # Detekce formátu souboru z URL
     file_ext = "unknown"
     url_match = re.search(r'url\s+[\'"]([^\'"]+)[\'"]', content)
     if url_match:
-        ext_search = re.search(r'(\.[a-zA-Z0-9]+)(?:[\'"]|$)', url_match.group(1).split('?')[0])
+        url_str = url_match.group(1)
+        ext_search = re.search(r'(\.[a-zA-Z0-9]+)(?:[\'"]|$)', url_str.split('?')[0])
         if ext_search:
             file_ext = ext_search.group(1)
+
+        # Automatické vytáhnutí GitHub repozitáře z URL pokud existuje
+        repo_match = re.search(r'https?://github\.com/([^/]+/[^/]+)', url_str)
+        if repo_match:
+            github_repo_url = f"https://github.com/{repo_match.group(1)}"
+        else:
+            github_repo_url = None
+    else:
+        github_repo_url = None
 
     shas = {}
     multi_sha = re.search(r'sha256\s+arm:\s*[\'"]([^\'"]+)[\'"],\s*intel:\s*[\'"]([^\'"]+)[\'"]', content)
@@ -56,6 +68,8 @@ def parse_package(filepath):
         "name": name_match.group(1) if name_match else pkg_id,
         "description": desc_match.group(1) if desc_match else "macOS package",
         "version": version_str,
+        "homepage": homepage_match.group(1) if homepage_match else None,
+        "github_repo": github_repo_url,
         "file_ext": file_ext,
         "shas": shas,
         "deps": deps,
@@ -68,12 +82,20 @@ packages = [parse_package(f) for f in glob.glob("Casks/*.rb") + glob.glob("Formu
 packages_html = ""
 for p in packages:
     details_html = f"<ul style='margin-bottom: 0;'>"
+
+    if p['homepage']:
+        details_html += f"<li><strong>Official Website:</strong> <a href='{p['homepage']}' target='_blank'>{p['homepage']}</a></li>"
+    if p['github_repo'] and p['github_repo'] != p['homepage']:
+        details_html += f"<li><strong>Repository:</strong> <a href='{p['github_repo']}' target='_blank'>{p['github_repo']}</a></li>"
+
     details_html += f"<li><strong>Format:</strong> <code>{p['file_ext']}</code></li>"
+
     if p['shas']:
         details_html += "<li><strong>Hashes (SHA256):</strong><ul style='margin-top: 0.25rem;'>"
         for arch, sha in p['shas'].items():
             details_html += f"<li>{arch}: <code style='display:inline; padding: 0.2rem; margin: 0;'>{sha}</code></li>"
         details_html += "</ul></li>"
+
     if p['deps']:
         details_html += f"<li><strong>Dependencies:</strong> <code>{', '.join(p['deps'])}</code></li>"
     details_html += "</ul>"
@@ -112,7 +134,6 @@ if os.path.exists('stats/clones.json'):
     with open('stats/clones.json', 'r') as f:
         clones_history = json.load(f)
 
-# Převedeme historii na list slovníků pro snadnou manipulaci v JavaScriptu
 history_list = [{"date": d, "count": clones_history[d]["count"]} for d in sorted(clones_history.keys())]
 
 json_ld = {
@@ -152,7 +173,7 @@ html_content = f"""<!DOCTYPE html>
         .range-selectors {{ display: flex; gap: 1rem; font-size: 0.85rem; margin-top: 0.8rem; font-weight: 500; }}
         .range-btn {{ cursor: pointer; color: #57606a; border: none; background: none; padding: 0; border-bottom: 2px solid transparent; transition: all 0.2s; }}
         .range-btn:hover {{ color: #24292f; }}
-        .range-btn.active {{ color: #24292f; border-bottom-color: #8956ff; }}
+        .range-btn.active {{ color: #24292f; border-bottom-color: #0969da; }}
 
         .search-box {{ width: 100%; padding: 0.8rem; margin: 2rem 0 1.5rem 0; border: 1px solid #d0d7de; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }}
         .package {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }}
@@ -167,7 +188,7 @@ html_content = f"""<!DOCTYPE html>
         .details-accordion > summary::before {{ content: '▶ '; font-size: 0.8em; color: #57606a; }}
         .details-accordion[open] > summary::before {{ content: '▼ '; }}
         .details-content {{ margin-top: 0.75rem; font-size: 0.9em; color: #57606a; }}
-        .caveats-box {{ margin-top: 1rem; background: #fff8c5; border: 1px solid #e1b400; border-radius: 6px; padding: 1rem; color: #24292f; }}
+        .caveats-box {{ margin-top: 1rem; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 1rem; color: #24292f; }}
         .caveats-box summary {{ cursor: pointer; font-weight: 600; }}
         .caveats-box pre {{ margin-top: 0.5rem; margin-bottom: 0; white-space: pre-wrap; font-family: monospace; font-size: 0.9em; }}
     </style>
@@ -189,7 +210,7 @@ html_content = f"""<!DOCTYPE html>
         <p>This is a custom Homebrew tap for macOS packages. To add this tap, run:</p>
         <code>brew tap toobab/tap</code>
 
-        <!-- NPM.js styl statistik -->
+        <!-- Statistiky v NPM stylu s modrým grafem -->
         <div class="npm-stats-wrapper">
             <div class="npm-stats-container">
                 <div class="npm-stats-text">
@@ -222,7 +243,6 @@ html_content = f"""<!DOCTYPE html>
     </main>
 
     <script>
-        // Filtrace balíčků
         document.getElementById('searchInput').addEventListener('input', function(e) {{
             const term = e.target.value.toLowerCase();
             document.querySelectorAll('.package').forEach(pkg => {{
@@ -231,7 +251,6 @@ html_content = f"""<!DOCTYPE html>
             }});
         }});
 
-        // Data statistik vložená z Pythonu
         const historyData = {json.dumps(history_list)};
         let chartInstance = null;
         const ctx = document.getElementById('cloneChart').getContext('2d');
@@ -247,10 +266,7 @@ html_content = f"""<!DOCTYPE html>
 
             const total = filtered.reduce((sum, item) => sum + item.count, 0);
 
-            // Formatování čísla s mezerami po tisících
             document.getElementById('statNumber').innerText = total.toLocaleString('cs-CZ').replace(/,/g, ' ');
-
-            // Oprava sčítání textových řetězců (bez kolize s Python f-stringem)
             document.getElementById('statTitle').innerText = 'Clones ' + (titleSuffix ? '(' + titleSuffix + ')' : '');
 
             const labels = filtered.map(d => d.date);
@@ -264,8 +280,8 @@ html_content = f"""<!DOCTYPE html>
                     labels: labels,
                     datasets: [{{
                         data: data,
-                        borderColor: '#8956ff',
-                        backgroundColor: 'rgba(137, 86, 255, 0.15)',
+                        borderColor: '#0969da',
+                        backgroundColor: 'rgba(9, 105, 218, 0.15)',
                         borderWidth: 2.5,
                         fill: true,
                         pointRadius: 0,
@@ -295,10 +311,8 @@ html_content = f"""<!DOCTYPE html>
             }});
         }}
 
-        // Inicializace s All-time
         renderStats('all', '');
 
-        // Interakce tlačítek
         document.querySelectorAll('.range-btn').forEach(btn => {{
             btn.addEventListener('click', (e) => {{
                 document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
