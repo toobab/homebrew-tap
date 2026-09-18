@@ -87,7 +87,7 @@ for p in packages:
     if p['github_repo'] and p['github_repo'] != p['homepage']:
         details_html += f"<li><strong>Repository:</strong> <a href='{p['github_repo']}' target='_blank'>{p['github_repo']}</a></li>"
 
-    details_html += f"<li><strong>Format:</strong> <code>{p['file_ext']}</code></li>"
+    details_html += f"<li><strong>Format:</strong> <code style='display:inline; padding: 0.2rem; margin: 0;'>{p['file_ext']}</code></li>"
 
     if p['shas']:
         details_html += "<li><strong>Hashes (SHA256):</strong><ul style='margin-top: 0.25rem;'>"
