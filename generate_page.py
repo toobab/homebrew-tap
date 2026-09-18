@@ -4,9 +4,21 @@ def parse_package(filepath):
     with open(filepath, 'r') as f:
         content = f.read()
 
-    name_match = re.search(r'name\s+"([^"]+)"', content)
-    desc_match = re.search(r'desc\s+"([^"]+)"', content)
-    version_match = re.search(r'version\s+"([^"]+)"', content)
+    # Podpora pro dvojité i jednoduché uvozovky
+    name_match = re.search(r'name\s+[\'"]([^\'"]+)[\'"]', content)
+    desc_match = re.search(r'desc\s+[\'"]([^\'"]+)[\'"]', content)
+    version_match = re.search(r'version\s+[\'"]([^\'"]+)[\'"]', content)
+
+    version_str = "unknown"
+    if version_match:
+        version_str = version_match.group(1)
+    else:
+        # Fallback: Pokud chybí 'version', zkusí ji vyříznout z URL (např. vpsfree-client-0.20.1.gem)
+        url_match = re.search(r'url\s+[\'"]([^\'"]+)[\'"]', content)
+        if url_match:
+            ver_search = re.search(r'-(\d+\.\d+\.\d+[a-zA-Z0-9\-]*)', url_match.group(1))
+            if ver_search:
+                version_str = ver_search.group(1)
 
     pkg_id = os.path.basename(filepath).replace('.rb', '')
 
@@ -14,13 +26,13 @@ def parse_package(filepath):
         "id": pkg_id,
         "name": name_match.group(1) if name_match else pkg_id,
         "description": desc_match.group(1) if desc_match else "macOS package",
-        "version": version_match.group(1) if version_match else "unknown",
+        "version": version_str,
         "install_cmd": f"brew install --cask toobab/tap/{pkg_id}" if "Casks" in filepath else f"brew install toobab/tap/{pkg_id}"
     }
 
 packages = [parse_package(f) for f in glob.glob("Casks/*.rb") + glob.glob("Formula/*.rb")]
 
-# JSON-LD pro GEO (Generative Engine Optimization) - AI agenti toto milují
+# JSON-LD pro AI optimalizaci (GEO)
 json_ld = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -41,17 +53,16 @@ html_content = f"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- SEO & OpenGraph -->
     <title>Toobab Homebrew Tap</title>
-    <meta name="description" content="Custom Homebrew tap for macOS applications including Nuvio and DbGate Premium.">
+    <meta name="description" content="Custom Homebrew tap for macOS applications.">
     <meta property="og:title" content="Toobab Homebrew Tap">
     <meta property="og:description" content="Automated Homebrew repository for custom macOS packages.">
     <meta property="og:type" content="website">
 
-    <!-- Styl pro čistý, čitelný vzhled -->
     <style>
         body {{ font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 2rem; color: #333; }}
         h1 {{ border-bottom: 2px solid #eaeaea; padding-bottom: 0.5rem; }}
+        .search-box {{ width: 100%; padding: 0.8rem; margin: 1.5rem 0; border: 1px solid #d0d7de; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }}
         .package {{ background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; }}
         .pkg-header {{ display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #eaeaea; padding-bottom: 0.5rem; margin-bottom: 1rem; }}
         .pkg-name {{ font-size: 1.25rem; font-weight: bold; margin: 0; }}
@@ -59,7 +70,6 @@ html_content = f"""<!DOCTYPE html>
         code {{ background: #eff1f3; padding: 0.5rem; border-radius: 4px; display: block; margin-top: 1rem; font-family: monospace; font-size: 0.95em; }}
     </style>
 
-    <!-- GEO Structured Data -->
     <script type="application/ld+json">
     {json.dumps(json_ld, indent=4)}
     </script>
@@ -71,18 +81,35 @@ html_content = f"""<!DOCTYPE html>
         <code>brew tap toobab/tap</code>
 
         <h2>Available Packages</h2>
+
+        <!-- Vyhledávací pole -->
+        <input type="text" id="searchInput" class="search-box" placeholder="Hledat balíček (např. nuvio)...">
+
+        <div id="packageList">
         {''.join(f'''
-        <article class="package">
-            <div class="pkg-header">
-                <h3 class="pkg-name">{p['name']}</h3>
-                <span class="pkg-version">v{p['version']}</span>
-            </div>
-            <p>{p['description']}</p>
-            <strong>Install:</strong>
-            <code>{p['install_cmd']}</code>
-        </article>
+            <article class="package">
+                <div class="pkg-header">
+                    <h3 class="pkg-name">{p['name']}</h3>
+                    <span class="pkg-version">v{p['version']}</span>
+                </div>
+                <p>{p['description']}</p>
+                <strong>Install:</strong>
+                <code>{p['install_cmd']}</code>
+            </article>
         ''' for p in packages)}
+        </div>
     </main>
+
+    <!-- Skript pro instantní filtraci -->
+    <script>
+        document.getElementById('searchInput').addEventListener('input', function(e) {{
+            const term = e.target.value.toLowerCase();
+            document.querySelectorAll('.package').forEach(pkg => {{
+                const name = pkg.querySelector('.pkg-name').textContent.toLowerCase();
+                pkg.style.display = name.includes(term) ? 'block' : 'none';
+            }});
+        }});
+    </script>
 </body>
 </html>"""
 
