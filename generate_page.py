@@ -20,7 +20,6 @@ def parse_package(filepath):
             if ver_search:
                 version_str = ver_search.group(1)
 
-    # Detekce formátu souboru z URL
     file_ext = "unknown"
     url_match = re.search(r'url\s+[\'"]([^\'"]+)[\'"]', content)
     if url_match:
@@ -29,7 +28,6 @@ def parse_package(filepath):
         if ext_search:
             file_ext = ext_search.group(1)
 
-        # Automatické vytáhnutí GitHub repozitáře z URL pokud existuje
         repo_match = re.search(r'https?://github\.com/([^/]+/[^/]+)', url_str)
         if repo_match:
             github_repo_url = f"https://github.com/{repo_match.group(1)}"
@@ -78,6 +76,7 @@ def parse_package(filepath):
     }
 
 packages = [parse_package(f) for f in glob.glob("Casks/*.rb") + glob.glob("Formula/*.rb")]
+total_packages = len(packages)
 
 packages_html = ""
 for p in packages:
@@ -159,7 +158,9 @@ html_content = f"""<!DOCTYPE html>
         body {{ font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 2rem; color: #333; }}
         .header-container {{ display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #eaeaea; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }}
         h1 {{ margin: 0; }}
-        .gh-buttons {{ display: flex; gap: 10px; }}
+        .header-right {{ display: flex; align-items: center; gap: 15px; }}
+        .package-badge {{ background: #eff1f3; padding: 0.3rem 0.8rem; border-radius: 2em; font-size: 0.85rem; font-weight: 600; color: #57606a; border: 1px solid #d0d7de; }}
+        .gh-buttons {{ display: flex; gap: 10px; align-items: center; }}
 
         /* NPM.js styl grafu a statistik */
         .npm-stats-wrapper {{ margin: 2rem 0; }}
@@ -201,9 +202,12 @@ html_content = f"""<!DOCTYPE html>
     <main>
         <div class="header-container">
             <h1>TOOBAB.net Homebrew Tap</h1>
-            <div class="gh-buttons">
-                <a class="github-button" href="https://github.com/toobab/homebrew-tap" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star toobab/homebrew-tap on GitHub">Star</a>
-                <a class="github-button" href="https://github.com/toobab/homebrew-tap/subscription" data-icon="octicon-eye" data-size="large" data-show-count="true" aria-label="Watch toobab/homebrew-tap on GitHub">Watch</a>
+            <div class="header-right">
+                <span class="package-badge">{total_packages} packages</span>
+                <div class="gh-buttons">
+                    <a class="github-button" href="https://github.com/toobab/homebrew-tap" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star toobab/homebrew-tap on GitHub">Star</a>
+                    <a class="github-button" href="https://github.com/toobab/homebrew-tap/subscription" data-icon="octicon-eye" data-size="large" data-show-count="true" aria-label="Watch toobab/homebrew-tap on GitHub">Watch</a>
+                </div>
             </div>
         </div>
 
