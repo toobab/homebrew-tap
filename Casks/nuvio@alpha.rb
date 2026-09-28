@@ -1,14 +1,14 @@
 cask "nuvio@alpha" do
   arch arm: "arm64", intel: "x86_64"
 
-  version "0.1.24-alpha"
-  sha256 arm:   "e847768f5ccc30e51b5f9d6484c737c6017cf0ce1301ecf36a1605a9df422612",
-         intel: "f68f88d7ce3976df97f8ccfbf1e581041339a894c3d8a1d0a5e576b70f008810"
+  version "0.1.26-alpha"
+  sha256 arm:   "bd8b91ecd7230d11e076212adda514b39150941c192dfd7b77706d0d2d7558d9",
+         intel: "78cb4e8a1e9572658dfb4d9fb49425d745e95b6517078b3a8d909e0a3003b9f5"
 
   url "https://github.com/NuvioMedia/NuvioDesktop/releases/download/#{version}/Nuvio-macOS-#{arch}-#{version}.dmg"
   name "Nuvio Alpha"
   desc "Nuvio Desktop Media Player (Alpha Channel)"
-  homepage "https://nuvio.tv/"
+  homepage "https://github.com/NuvioMedia/NuvioDesktop"
 
   livecheck do
     url :url
