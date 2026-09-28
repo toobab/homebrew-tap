@@ -5,6 +5,9 @@ on:
     - cron: '0 */12 * * *' # Běží každých 12 hodin
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   update-cask:
     runs-on: ubuntu-latest
