@@ -1,9 +1,9 @@
 cask "dbgate@premium" do
   arch arm: "arm64", intel: "x64"
 
-  version "7.3.1"
-  sha256 arm:   "4662a09ab325d4586fc6b344e2ebd10566d71a66d23298688562d3aaf511f3ca",
-         intel: "d60dc050c9b733a43e56dffd369b6d0f49777e816bed5248a87d208210c76970"
+  version "7.3.2"
+  sha256 arm:   "0fa5f7e042d3085e408c38989bcfa91979599cb09d6f60d054e91869d9ea00c3",
+         intel: "0eb699d044fa360bd12ec3687e54933a2e4afa7580c94b6aa0d3025111cb6f19"
 
   url "https://github.com/dbgate/dbgate/releases/download/v#{version}/dbgate-premium-#{version}-mac_#{arch}.dmg"
   name "DbGate Premium"
