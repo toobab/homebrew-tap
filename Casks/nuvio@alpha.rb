@@ -1,9 +1,9 @@
 cask "nuvio@alpha" do
   arch arm: "arm64", intel: "x86_64"
 
-  version "0.1.27-alpha"
-  sha256 arm:   "6f3b57bda493bc39cf8666affa0d6c8fcfc07686958a741938a7210e532780a6",
-         intel: "701e3376b4e947371c5085917635327a34e2d768d56747f9209c965e5acd0b9d"
+  version "0.1.28-alpha"
+  sha256 arm:   "78f935a68b78203ab93588391eaa70f1233522b41fa64e7508ffc226dea732dd",
+         intel: "4da06bb14e1185458f5d3756dda0902564d1ecfd47d617f648769a37027a5dce"
 
   url "https://github.com/NuvioMedia/NuvioDesktop/releases/download/#{version}/Nuvio-macOS-#{arch}-#{version}.dmg"
   name "Nuvio Alpha"
@@ -11,8 +11,7 @@ cask "nuvio@alpha" do
   homepage "https://github.com/NuvioMedia/NuvioDesktop"
 
   livecheck do
-    url :url
-    strategy :github_releases
+    skip "Updated automatically by GitHub Actions"
   end
 
   app "Nuvio.app"

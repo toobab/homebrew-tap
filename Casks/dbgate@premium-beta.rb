@@ -1,20 +1,20 @@
-cask "dbgate@premium" do
+cask "dbgate@premium-beta" do
   arch arm: "arm64", intel: "x64"
 
-  version "7.3.1"
-  sha256 arm:   "4662a09ab325d4586fc6b344e2ebd10566d71a66d23298688562d3aaf511f3ca",
-         intel: "d60dc050c9b733a43e56dffd369b6d0f49777e816bed5248a87d208210c76970"
+  version "7.3.2-premium-beta.4"
+  sha256 arm:   "15e03c6641dcd1e3eaac25c7729e81da2770da93839403edcfa10f3e534b0012",
+         intel: "da3c584911539500120ab66bdbcb38ff65ed72b54d7be0fcb8aff86ee267bf80"
 
   url "https://github.com/dbgate/dbgate/releases/download/v#{version}/dbgate-premium-#{version}-mac_#{arch}.dmg"
-  name "DbGate Premium"
-  desc "Database manager for SQL and NoSQL databases"
+  name "DbGate Premium Beta"
+  desc "Database manager for SQL and NoSQL databases (beta channel)"
   homepage "https://dbgate.org/"
 
   livecheck do
     skip "Updated automatically by GitHub Actions"
   end
 
-  conflicts_with cask: "dbgate@premium-beta"
+  conflicts_with cask: "dbgate@premium"
 
   app "DbGate Premium.app"
 

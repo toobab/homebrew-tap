@@ -1,0 +1,56 @@
+name: Update Packages
+
+on:
+  schedule:
+    - cron: '17 */3 * * *' # každé 3 hodiny
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write # kvůli spuštění pages.yml
+
+concurrency:
+  group: tap-write
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Check upstream releases and update packages
+        id: update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python update_packages.py
+
+      - name: Validate Ruby syntax
+        if: steps.update.outputs.changed == 'true'
+        run: for f in Casks/*.rb Formula/*.rb; do ruby -c "$f" > /dev/null; done
+
+      - name: Commit and push changes
+        if: steps.update.outputs.changed == 'true'
+        env:
+          MESSAGE: ${{ steps.update.outputs.message }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks Formula
+          git commit -m "Update ${MESSAGE}"
+          for i in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep 5
+          done
+          exit 1
+
+      # Push z GITHUB_TOKENu nespouští další workflow, proto web sestavíme explicitně.
+      - name: Rebuild GitHub Pages
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run pages.yml --ref "${{ github.ref_name }}"

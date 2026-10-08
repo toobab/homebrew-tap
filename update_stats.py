@@ -1,7 +1,7 @@
 import os, json, requests
 
 TOKEN = os.environ.get('TRAFFIC_TOKEN')
-REPO = "toobab/homebrew-tap"
+REPO = os.environ.get("GITHUB_REPOSITORY", "toobab/homebrew-tap")
 URL = f"https://api.github.com/repos/{REPO}/traffic/clones"
 
 if not TOKEN:
@@ -13,7 +13,7 @@ headers = {
     "Accept": "application/vnd.github.v3+json"
 }
 
-response = requests.get(URL, headers=headers)
+response = requests.get(URL, headers=headers, timeout=30)
 if response.status_code != 200:
     print(f"Failed to fetch data: {response.status_code} - {response.text}")
     exit(1)

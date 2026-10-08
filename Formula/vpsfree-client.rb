@@ -8,10 +8,10 @@ class VpsfreeClient < Formula
 
   def install
     ENV["GEM_HOME"] = libexec
-    system "gem", "install", "vpsfree-client-0.20.1.gem", "--no-document"
-    
+    system "gem", "install", "vpsfree-client-#{version}.gem", "--no-document"
+
     bin.install libexec/"bin/vpsfreectl"
-    bin.env_script_all_files(libexec/"bin", GEM_HOME: ENV["GEM_HOME"])
+    bin.env_script_all_files(libexec/"bin", GEM_HOME: libexec.to_s)
   end
 
   def caveats
@@ -36,5 +36,8 @@ class VpsfreeClient < Formula
         vpsfreectl --auth token --save your-username
     EOS
   end
-end
 
+  test do
+    assert_match "Usage", shell_output("#{bin}/vpsfreectl --help")
+  end
+end

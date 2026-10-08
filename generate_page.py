@@ -1,4 +1,7 @@
-import os, re, json, glob
+import os, re, json, glob, html
+
+REPO = os.environ.get("GITHUB_REPOSITORY", "toobab/homebrew-tap")
+TAP = REPO.replace("homebrew-", "")
 
 # --- Parsování balíčků ---
 def parse_package(filepath):
@@ -72,10 +75,11 @@ def parse_package(filepath):
         "shas": shas,
         "deps": deps,
         "caveats": caveats,
-        "install_cmd": f"brew install --cask toobab/tap/{pkg_id}" if "Casks" in filepath else f"brew install toobab/tap/{pkg_id}"
+        "install_cmd": f"brew install --cask {TAP}/{pkg_id}" if "Casks" in filepath else f"brew install {TAP}/{pkg_id}"
     }
 
-packages = [parse_package(f) for f in glob.glob("Casks/*.rb") + glob.glob("Formula/*.rb")]
+packages = [parse_package(f) for f in sorted(glob.glob("Casks/*.rb") + glob.glob("Formula/*.rb"))]
+esc = html.escape
 total_packages = len(packages)
 
 packages_html = ""
@@ -83,20 +87,20 @@ for p in packages:
     details_html = f"<ul style='margin-bottom: 0;'>"
 
     if p['homepage']:
-        details_html += f"<li><strong>Official Website:</strong> <a href='{p['homepage']}' target='_blank'>{p['homepage']}</a></li>"
+        details_html += f"<li><strong>Official Website:</strong> <a href='{esc(p['homepage'])}' target='_blank' rel='noopener'>{esc(p['homepage'])}</a></li>"
     if p['github_repo'] and p['github_repo'] != p['homepage']:
-        details_html += f"<li><strong>Repository:</strong> <a href='{p['github_repo']}' target='_blank'>{p['github_repo']}</a></li>"
+        details_html += f"<li><strong>Repository:</strong> <a href='{esc(p['github_repo'])}' target='_blank' rel='noopener'>{esc(p['github_repo'])}</a></li>"
 
-    details_html += f"<li><strong>Format:</strong> <code style='display:inline; padding: 0.2rem; margin: 0;'>{p['file_ext']}</code></li>"
+    details_html += f"<li><strong>Format:</strong> <code style='display:inline; padding: 0.2rem; margin: 0;'>{esc(p['file_ext'])}</code></li>"
 
     if p['shas']:
         details_html += "<li><strong>Hashes (SHA256):</strong><ul style='margin-top: 0.25rem;'>"
         for arch, sha in p['shas'].items():
-            details_html += f"<li>{arch}: <code style='display:inline; padding: 0.2rem; margin: 0;'>{sha}</code></li>"
+            details_html += f"<li>{esc(arch)}: <code style='display:inline; padding: 0.2rem; margin: 0;'>{esc(sha)}</code></li>"
         details_html += "</ul></li>"
 
     if p['deps']:
-        details_html += f"<li><strong>Dependencies:</strong> <code>{', '.join(p['deps'])}</code></li>"
+        details_html += f"<li><strong>Dependencies:</strong> <code>{esc(', '.join(p['deps']))}</code></li>"
     details_html += "</ul>"
 
     caveats_html = ""
@@ -104,19 +108,19 @@ for p in packages:
         caveats_html = f"""
         <details class="caveats-box">
             <summary><strong>Caveats & Instructions</strong></summary>
-            <pre>{p['caveats']}</pre>
+            <pre>{esc(p['caveats'])}</pre>
         </details>
         """
 
     packages_html += f"""
     <article class="package">
         <div class="pkg-header">
-            <h3 class="pkg-name">{p['name']}</h3>
-            <span class="pkg-version">v{p['version']}</span>
+            <h3 class="pkg-name">{esc(p['name'])}</h3>
+            <span class="pkg-version">v{esc(p['version'])}</span>
         </div>
-        <p>{p['description']}</p>
+        <p>{esc(p['description'])}</p>
         <strong>Install:</strong>
-        <code>{p['install_cmd']}</code>
+        <code>{esc(p['install_cmd'])}</code>
         <details class="details-accordion">
             <summary>Package Details & Metadata</summary>
             <div class="details-content">
@@ -151,7 +155,7 @@ html_content = f"""<!DOCTYPE html>
     <title>TOOBAB.net Homebrew Tap</title>
     <meta name="description" content="Custom Homebrew tap for macOS applications.">
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script async defer src="https://buttons.github.io/buttons.js"></script>
 
     <style>
@@ -220,7 +224,7 @@ html_content = f"""<!DOCTYPE html>
                 <div class="npm-stats-text">
                     <h3 class="npm-stats-title">
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-8.5C1 2.784 1.784 2 2.75 2h10.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 13.25 14ZM2.75 3.5c-.138 0-.25.112-.25.25v8.5c0 .138.112.25.25.25h10.5c.138 0 .25-.112.25-.25v-8.5c0-.138-.112-.25-.25-.25Zm8 4a.75.75 0 0 1 .75.75v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 1 .75-.75Zm-5 1.5a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-1.5 0v-.5a.75.75 0 0 1 .75-.75Zm2.5-2.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 .75-.75Z"></path></svg>
-                        <span id="statTitle">Downloads</span>
+                        <span id="statTitle">Clones</span>
                     </h3>
                     <div class="npm-stats-number" id="statNumber">0</div>
                 </div>
@@ -263,14 +267,12 @@ html_content = f"""<!DOCTYPE html>
             let filtered = historyData;
 
             if (days !== 'all' && historyData.length > 0) {{
-                const targetDate = new Date();
-                targetDate.setDate(targetDate.getDate() - parseInt(days));
-                filtered = historyData.filter(d => new Date(d.date) >= targetDate);
+                filtered = historyData.slice(-Math.max(parseInt(days), 2));
             }}
 
             const total = filtered.reduce((sum, item) => sum + item.count, 0);
 
-            document.getElementById('statNumber').innerText = total.toLocaleString('cs-CZ').replace(/,/g, ' ');
+            document.getElementById('statNumber').innerText = total.toLocaleString('en-US');
             document.getElementById('statTitle').innerText = 'Clones ' + (titleSuffix ? '(' + titleSuffix + ')' : '');
 
             const labels = filtered.map(d => d.date);
