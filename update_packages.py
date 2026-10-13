@@ -104,6 +104,17 @@ def nuvio():
                              "intel": asset_sha256(assets["x86_64"])}
 
 
+def gitdesktop():
+    def wanted(rel):
+        return {"dmg": f"GitDesktop_{rel['tag_name'].lstrip('v')}_universal.dmg"}
+
+    rel, assets = first_complete(github_releases("theBGuy/GitDesktop"),
+                                 lambda r: not r["prerelease"], wanted)
+    if not rel:
+        return None
+    return rel["tag_name"].lstrip("v"), asset_sha256(assets["dmg"])
+
+
 def vpsfree_client():
     with http("https://rubygems.org/api/v1/gems/vpsfree-client.json") as r:
         info = json.load(r)
@@ -119,6 +130,11 @@ def apply_cask(text, version, shas):
     return new
 
 
+def apply_cask_single(text, version, sha):
+    new = re.sub(r'(?m)^(\s*version\s+")[^"]+(")', rf'\g<1>{version}\g<2>', text, count=1)
+    return re.sub(r'(?m)^(\s*sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
+
+
 def apply_formula(text, version, sha):
     new = re.sub(r'(vpsfree-client-)[0-9][^"/]*?(\.gem")', rf'\g<1>{version}\g<2>', text, count=1)
     new = re.sub(r'(?m)^(\s*sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
@@ -129,6 +145,7 @@ PACKAGES = [
     ("Casks/dbgate@premium.rb", dbgate(True), apply_cask),
     ("Casks/dbgate@premium-beta.rb", dbgate(False), apply_cask),
     ("Casks/nuvio@alpha.rb", nuvio, apply_cask),
+    ("Casks/gitdesktop.rb", gitdesktop, apply_cask_single),
     ("Formula/vpsfree-client.rb", vpsfree_client, apply_formula),
 ]
 

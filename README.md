@@ -5,6 +5,7 @@ brew tap toobab/tap
 brew install --cask toobab/tap/dbgate@premium        # stable
 brew install --cask toobab/tap/dbgate@premium-beta   # beta
 brew install --cask toobab/tap/nuvio@alpha
+brew install --cask toobab/tap/gitdesktop
 brew install toobab/tap/vpsfree-client
 ```
 
