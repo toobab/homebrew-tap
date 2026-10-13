@@ -22,6 +22,7 @@ cask "nuvio@alpha" do
     "~/Library/Application Support/Nuvio",
     "~/Library/Caches/com.nuvio.media.desktop",
     "~/Library/Caches/Nuvio",
+    "~/Library/HTTPStorages/com.nuvio.media.desktop",
     "~/Library/Preferences/com.nuvio.media.desktop.plist",
     "~/Library/WebKit/com.nuvio.media.desktop",
   ]

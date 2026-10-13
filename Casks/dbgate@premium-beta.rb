@@ -19,6 +19,7 @@ cask "dbgate@premium-beta" do
   app "DbGate Premium.app"
 
   zap trash: [
+    "~/Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.ApplicationRecentDocuments/org.dbgate.premium.sfl4",
     "~/Library/Caches/org.dbgate.premium",
     "~/Library/Caches/org.dbgate.premium.ShipIt",
     "~/Library/HTTPStorages/org.dbgate.premium",
