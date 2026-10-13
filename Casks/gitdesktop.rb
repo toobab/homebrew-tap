@@ -12,8 +12,6 @@ cask "gitdesktop" do
     skip "Updated automatically by GitHub Actions"
   end
 
-  depends_on macos: ">= :high_sierra"
-
   app "GitDesktop.app"
 
   zap trash: [
