@@ -17,8 +17,6 @@ cask "gitdesktop" do
   zap trash: [
     "~/Library/Application Support/com.thebguy.gitdesktop",
     "~/Library/Caches/com.thebguy.gitdesktop",
-    "~/Library/Preferences/com.thebguy.gitdesktop.plist",
-    "~/Library/Saved Application State/com.thebguy.gitdesktop.savedState",
     "~/Library/WebKit/com.thebguy.gitdesktop",
   ]
 end
