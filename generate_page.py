@@ -63,6 +63,10 @@ def parse_package(filepath):
         if caveats_eos:
             caveats = caveats_eos.group(1).strip()
 
+    repo_comment = re.search(r'^#\s*repository:\s*(\S+)', content, re.MULTILINE | re.IGNORECASE)
+    if repo_comment:
+        github_repo_url = repo_comment.group(1)
+
     pkg_id = os.path.basename(filepath).replace('.rb', '')
     return {
         "id": pkg_id,

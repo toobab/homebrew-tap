@@ -1,3 +1,4 @@
+# repository: https://github.com/NuvioMedia/NuvioDesktop
 cask "nuvio@alpha" do
   arch arm: "arm64", intel: "x86_64"
 
@@ -8,7 +9,7 @@ cask "nuvio@alpha" do
   url "https://github.com/NuvioMedia/NuvioDesktop/releases/download/#{version}/Nuvio-macOS-#{arch}-#{version}.dmg"
   name "Nuvio Alpha"
   desc "Nuvio Desktop Media Player (Alpha Channel)"
-  homepage "https://github.com/NuvioMedia/NuvioDesktop"
+  homepage "https://nuvio.tv/"
 
   livecheck do
     skip "Updated automatically by GitHub Actions"

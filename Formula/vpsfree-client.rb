@@ -1,6 +1,7 @@
+# repository: https://github.com/vpsfreecz/vpsfree-client
 class VpsfreeClient < Formula
   desc "Ruby CLI and client library for vpsFree.cz API"
-  homepage "https://github.com/vpsfreecz/vpsfree-client"
+  homepage "https://vpsfree.cz/"
   url "https://rubygems.org/downloads/vpsfree-client-0.20.1.gem"
   sha256 "ef0dfadd1a5b7ba6183045fa8950a168d0913747f61ab9599c85642536026fcd"
 

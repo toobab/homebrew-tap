@@ -1,3 +1,4 @@
+# repository: https://github.com/theBGuy/GitDesktop
 cask "gitdesktop" do
   version "0.13.4"
   sha256 "47ae78ea176f90d45e4f95497f49aaaeacd5b1eadede6a997f0bf5150124ad2e"
