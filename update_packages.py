@@ -115,6 +115,17 @@ def gitdesktop():
     return rel["tag_name"].lstrip("v"), asset_sha256(assets["dmg"])
 
 
+def removemacai():
+    def wanted(rel):
+        return {"zip": "RemoveMacAI.zip"}
+
+    rel, assets = first_complete(github_releases("omlahore/RemoveMacAI"),
+                                 lambda r: not r["prerelease"], wanted)
+    if not rel:
+        return None
+    return rel["tag_name"].lstrip("v"), asset_sha256(assets["zip"])
+
+
 def vpsfree_client():
     with http("https://rubygems.org/api/v1/gems/vpsfree-client.json") as r:
         info = json.load(r)
@@ -146,6 +157,7 @@ PACKAGES = [
     ("Casks/dbgate@premium-beta.rb", dbgate(False), apply_cask),
     ("Casks/nuvio@alpha.rb", nuvio, apply_cask),
     ("Casks/gitdesktop.rb", gitdesktop, apply_cask_single),
+    ("Casks/removemacai.rb", removemacai, apply_cask_single),
     ("Formula/vpsfree-client.rb", vpsfree_client, apply_formula),
 ]
 
