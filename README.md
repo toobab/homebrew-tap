@@ -13,3 +13,4 @@ brew install toobab/tap/vpsfree-client
 Verze se aktualizují automaticky (`update_packages.py`, workflow *Update Packages* každé 3 h).
 Nová verze se zapíše až ve chvíli, kdy jsou nahrané všechny soubory (DMG), jinak se počká na další běh.
 Po každé změně se přegeneruje web na GitHub Pages (`generate_page.py`).
+Web generuje také `sitemap.xml`, `robots.txt`, `llms.txt` a samostatnou stránku pro každý balíček (SEO).

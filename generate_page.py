@@ -2,6 +2,9 @@ import os, re, json, glob, html
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "toobab/homebrew-tap")
 TAP = REPO.replace("homebrew-", "")
+OWNER, REPO_NAME = REPO.split("/")
+BASE = f"https://{OWNER}.github.io/{REPO_NAME}/"
+SITE_NAME = f"{TAP} - Homebrew tap for macOS apps"
 
 # --- Parsování balíčků ---
 def parse_package(filepath):
@@ -79,6 +82,8 @@ def parse_package(filepath):
         "shas": shas,
         "deps": deps,
         "caveats": caveats,
+        "slug": os.path.basename(filepath)[:-3].replace("@", "-"),
+        "kind": "cask" if "Casks" in filepath else "formula",
         "install_cmd": f"brew install --cask {TAP}/{pkg_id}" if "Casks" in filepath else f"brew install {TAP}/{pkg_id}"
     }
 
@@ -116,10 +121,12 @@ for p in packages:
         </details>
         """
 
+    p['_details'], p['_caveats'] = details_html, caveats_html
+
     packages_html += f"""
-    <article class="package">
+    <article class="package" id="{p['slug']}">
         <div class="pkg-header">
-            <h3 class="pkg-name">{esc(p['name'])}</h3>
+            <h3 class="pkg-name"><a href="{p['slug']}/">{esc(p['name'])}</a></h3>
             <span class="pkg-version">v{esc(p['version'])}</span>
         </div>
         <p>{esc(p['description'])}</p>
@@ -143,21 +150,64 @@ if os.path.exists('stats/clones.json'):
 
 history_list = [{"date": d, "count": clones_history[d]["count"]} for d in sorted(clones_history.keys())]
 
+names = [p["name"] for p in packages]
+PAGE_TITLE = f"Homebrew Tap for macOS apps: {', '.join(names[:4])} | {TAP}"
+PAGE_DESC = (f"Homebrew tap {TAP} with {total_packages} macOS packages ({', '.join(names)}). "
+             f"Run brew tap {TAP}, then brew install. Versions and SHA256 hashes are updated automatically.")
+
+
+def software_ld(p):
+    same_as = [u for u in (p["homepage"], p["github_repo"]) if u]
+    return {
+        "@type": "SoftwareApplication", "@id": f"{BASE}{p['slug']}/#app", "name": p["name"],
+        "url": f"{BASE}{p['slug']}/", "softwareVersion": p["version"], "description": p["description"],
+        "applicationCategory": "DeveloperApplication", "operatingSystem": "macOS",
+        "installUrl": f"{BASE}{p['slug']}/", "sameAs": same_as, "isAccessibleForFree": True,
+        "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+    }
+
+
 json_ld = {
     "@context": "https://schema.org",
-    "@type": "ItemList",
-    "itemListElement": [
-        {"@type": "SoftwareApplication", "name": p["name"], "softwareVersion": p["version"], "description": p["description"], "applicationCategory": "DeveloperApplication", "operatingSystem": "macOS"} for p in packages
-    ]
+    "@graph": [
+        {"@type": "WebSite", "@id": BASE + "#website", "name": SITE_NAME, "url": BASE,
+         "description": PAGE_DESC, "inLanguage": "en"},
+        {"@type": "CollectionPage", "@id": BASE + "#page", "url": BASE, "name": PAGE_TITLE,
+         "description": PAGE_DESC, "isPartOf": {"@id": BASE + "#website"},
+         "mainEntity": {"@type": "ItemList", "numberOfItems": total_packages, "itemListElement": [
+             {"@type": "ListItem", "position": i + 1, "item": software_ld(p)} for i, p in enumerate(packages)]}},
+    ],
 }
+
+FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8D%BA%3C/text%3E%3C/svg%3E"
+
+
+def seo_head(title, desc, canonical, og_type="website"):
+    return f"""<title>{esc(title)}</title>
+    <meta name="description" content="{esc(desc, quote=True)}">
+    <link rel="canonical" href="{canonical}">
+    <link rel="icon" href="{FAVICON}">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <meta property="og:type" content="{og_type}">
+    <meta property="og:site_name" content="{esc(SITE_NAME, quote=True)}">
+    <meta property="og:title" content="{esc(title, quote=True)}">
+    <meta property="og:description" content="{esc(desc, quote=True)}">
+    <meta property="og:url" content="{canonical}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{esc(title, quote=True)}">
+    <meta name="twitter:description" content="{esc(desc, quote=True)}">"""
+
+
+def ld_script(data):
+    return '<script type="application/ld+json">' + json.dumps(data, indent=2).replace("</", "<\\/") + '</script>'
+
 
 html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TOOBAB.net Homebrew Tap</title>
-    <meta name="description" content="Custom Homebrew tap for macOS applications.">
+    {seo_head(PAGE_TITLE, PAGE_DESC, BASE)}
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script async defer src="https://buttons.github.io/buttons.js"></script>
@@ -187,6 +237,8 @@ html_content = f"""<!DOCTYPE html>
         .search-box {{ width: 100%; padding: 0.8rem; margin: 2rem 0 1.5rem 0; border: 1px solid #d0d7de; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }}
         .package {{ background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }}
         .pkg-header {{ display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #eaeaea; padding-bottom: 0.5rem; margin-bottom: 1rem; }}
+        .pkg-name a {{ color: inherit; text-decoration: none; }}
+        .pkg-name a:hover {{ text-decoration: underline; }}
         .pkg-name {{ font-size: 1.25rem; font-weight: bold; margin: 0; }}
         .pkg-version {{ background: #0969da; color: white; padding: 0.2em 0.6em; border-radius: 2em; font-size: 0.85em; font-weight: bold; }}
         code {{ background: #eff1f3; padding: 0.5rem; border-radius: 4px; display: block; margin-top: 1rem; font-family: monospace; font-size: 0.95em; word-break: break-all; }}
@@ -202,9 +254,7 @@ html_content = f"""<!DOCTYPE html>
         .caveats-box pre {{ margin-top: 0.5rem; margin-bottom: 0; white-space: pre-wrap; font-family: monospace; font-size: 0.9em; }}
     </style>
 
-    <script type="application/ld+json">
-    {json.dumps(json_ld, indent=4)}
-    </script>
+    {ld_script(json_ld)}
 </head>
 <body>
     <main>
@@ -213,14 +263,14 @@ html_content = f"""<!DOCTYPE html>
             <div class="header-right">
                 <span class="package-badge">{total_packages} packages</span>
                 <div class="gh-buttons">
-                    <a class="github-button" href="https://github.com/toobab/homebrew-tap" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star toobab/homebrew-tap on GitHub">Star</a>
-                    <a class="github-button" href="https://github.com/toobab/homebrew-tap/subscription" data-icon="octicon-eye" data-size="large" data-show-count="true" aria-label="Watch toobab/homebrew-tap on GitHub">Watch</a>
+                    <a class="github-button" href="https://github.com/{REPO}" data-icon="octicon-star" data-size="large" data-show-count="true" aria-label="Star {REPO} on GitHub">Star</a>
+                    <a class="github-button" href="https://github.com/{REPO}/subscription" data-icon="octicon-eye" data-size="large" data-show-count="true" aria-label="Watch {REPO} on GitHub">Watch</a>
                 </div>
             </div>
         </div>
 
-        <p>This is a custom Homebrew tap for macOS packages. To add this tap, run:</p>
-        <code>brew tap toobab/tap</code>
+        <p>{TAP} is a Homebrew tap with {total_packages} macOS apps and CLI tools ({esc(", ".join(names))}). Versions are checked automatically against upstream releases. To add this tap, run:</p>
+        <code>brew tap {TAP}</code>
 
         <!-- Statistiky v NPM stylu s modrým grafem -->
         <div class="npm-stats-wrapper">
@@ -340,3 +390,72 @@ html_content = f"""<!DOCTYPE html>
 os.makedirs('public', exist_ok=True)
 with open('public/index.html', 'w') as f:
     f.write(html_content)
+
+# --- Stránky jednotlivých balíčků ---
+CSS = re.search(r"<style>(.*?)</style>", html_content, re.S).group(1)
+import datetime
+TODAY = datetime.date.today().isoformat()
+
+
+def package_page(p):
+    url = f"{BASE}{p['slug']}/"
+    cask_flag = "--cask " if p["kind"] == "cask" else ""
+    title = f"{p['name']} {p['version']} - brew install {cask_flag}{TAP}/{p['id']}"
+    desc = (f"{p['description'].rstrip('.')}. Install {p['name']} {p['version']} on macOS with Homebrew: "
+            f"brew install {cask_flag}{TAP}/{p['id']}.")
+    ld = {"@context": "https://schema.org", "@graph": [
+        software_ld(p),
+        {"@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": SITE_NAME, "item": BASE},
+            {"@type": "ListItem", "position": 2, "name": p["name"], "item": url}]}]}
+    steps = (f"brew tap {TAP}\n{p['install_cmd']}\n\n# upgrade / uninstall\n"
+             f"brew upgrade {cask_flag}{p['id']}\nbrew uninstall {cask_flag}{p['id']}")
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {seo_head(title, desc, url, "article")}
+    {ld_script(ld)}
+    <style>{CSS}</style>
+</head>
+<body>
+    <main>
+        <nav aria-label="Breadcrumb"><a href="../">{esc(SITE_NAME)}</a> &rsaquo; {esc(p['name'])}</nav>
+        <div class="header-container"><h1>{esc(p['name'])}</h1><span class="pkg-version">v{esc(p['version'])}</span></div>
+        <p>{esc(p['description'])}. Available as a Homebrew {p['kind']} in the {esc(TAP)} tap for macOS.</p>
+        <h2>Install with Homebrew</h2>
+        <pre><code>{esc(steps)}</code></pre>
+        <h2>Details</h2>
+        <div class="details-content">{p['_details']}{p['_caveats']}</div>
+        <p><a href="../">&larr; All packages in {esc(TAP)}</a></p>
+    </main>
+</body>
+</html>"""
+
+
+for p in packages:
+    os.makedirs(f"public/{p['slug']}", exist_ok=True)
+    with open(f"public/{p['slug']}/index.html", "w") as f:
+        f.write(package_page(p))
+
+# --- sitemap.xml, robots.txt, llms.txt ---
+urls = [BASE] + [f"{BASE}{p['slug']}/" for p in packages]
+with open("public/sitemap.xml", "w") as f:
+    f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
+    for u in urls:
+        f.write(f"  <url><loc>{u}</loc><lastmod>{TODAY}</lastmod></url>\n")
+    f.write("</urlset>\n")
+
+with open("public/robots.txt", "w") as f:
+    f.write(f"User-agent: *\nAllow: /\n\nSitemap: {BASE}sitemap.xml\n")
+
+lines = [f"# {TAP}", "", f"> {PAGE_DESC}", "",
+         f"Add the tap with `brew tap {TAP}`. Casks install with `brew install --cask {TAP}/<name>`, formulae with `brew install {TAP}/<name>`.", "",
+         "## Packages", ""]
+for p in packages:
+    lines.append(f"- [{p['name']}]({BASE}{p['slug']}/): {p['description']} (v{p['version']}). Install: `{p['install_cmd']}`")
+lines += ["", "## Source", "", f"- [GitHub repository](https://github.com/{REPO}): cask and formula definitions, update scripts",
+          f"- [Sitemap]({BASE}sitemap.xml)", ""]
+with open("public/llms.txt", "w") as f:
+    f.write("\n".join(lines))
