@@ -126,6 +126,26 @@ def removemacai():
     return rel["tag_name"].lstrip("v"), asset_sha256(assets["zip"])
 
 
+def media_downloader():
+    """Nejnovější tag podle historie commitů (API řadí tagy abecedně, ne podle data)."""
+    repo = "sunecz/Media-Downloader"
+    by_sha = {}
+    for page in range(1, 6):
+        tags = get_json(f"https://api.github.com/repos/{repo}/tags?per_page=100&page={page}")
+        by_sha.update({t["commit"]["sha"]: t["name"] for t in tags})
+        if len(tags) < 100:
+            break
+    tag = None
+    for c in get_json(f"https://api.github.com/repos/{repo}/commits?per_page=100"):
+        if c["sha"] in by_sha:
+            tag = by_sha[c["sha"]]
+            break
+    if not tag:
+        return None
+    sha = sha256_of_url(f"https://github.com/{repo}/archive/refs/tags/{tag}.tar.gz")
+    return tag.lstrip("v"), (tag, sha)
+
+
 def vpsfree_client():
     with http("https://rubygems.org/api/v1/gems/vpsfree-client.json") as r:
         info = json.load(r)
@@ -146,6 +166,13 @@ def apply_cask_single(text, version, sha):
     return re.sub(r'(?m)^(\s*sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
 
 
+def apply_formula_tag(text, version, payload):
+    tag, sha = payload
+    new = re.sub(r'(archive/refs/tags/)[^"]+(\.tar\.gz")', rf'\g<1>{tag}\g<2>', text, count=1)
+    new = re.sub(r'(?m)^(  version\s+")[^"]+(")', rf'\g<1>{version}\g<2>', new, count=1)
+    return re.sub(r'(?m)^(  sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
+
+
 def apply_formula(text, version, sha):
     new = re.sub(r'(vpsfree-client-)[0-9][^"/]*?(\.gem")', rf'\g<1>{version}\g<2>', text, count=1)
     new = re.sub(r'(?m)^(\s*sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
@@ -158,6 +185,7 @@ PACKAGES = [
     ("Casks/nuvio@alpha.rb", nuvio, apply_cask),
     ("Casks/gitdesktop.rb", gitdesktop, apply_cask_single),
     ("Casks/removemacai.rb", removemacai, apply_cask_single),
+    ("Formula/media-downloader.rb", media_downloader, apply_formula_tag),
     ("Formula/vpsfree-client.rb", vpsfree_client, apply_formula),
 ]
 
