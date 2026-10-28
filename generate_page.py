@@ -48,9 +48,14 @@ def parse_package(filepath):
         shas['Apple Silicon (arm64)'] = multi_sha.group(1)
         shas['Intel (x86_64)'] = multi_sha.group(2)
     else:
-        single_sha = re.search(r'sha256\s+[\'"]([^\'"]+)[\'"]', content)
-        if single_sha:
-            shas['Universal'] = single_sha.group(1)
+        top_level = re.findall(r'^ {2,4}sha256\s+[\'"]([0-9a-f]{64})[\'"]', content, re.MULTILINE)
+        if len(top_level) == 2 and 'Hardware::CPU.arm?' in content:
+            shas['Apple Silicon (arm64)'] = top_level[0]
+            shas['Intel (x86_64)'] = top_level[1]
+        else:
+            single_sha = re.search(r'sha256\s+[\'"]([^\'"]+)[\'"]', content)
+            if single_sha:
+                shas['Universal'] = single_sha.group(1)
 
     deps = []
     for line in content.split('\n'):

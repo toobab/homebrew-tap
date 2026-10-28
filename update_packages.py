@@ -126,24 +126,19 @@ def removemacai():
     return rel["tag_name"].lstrip("v"), asset_sha256(assets["zip"])
 
 
-def media_downloader():
-    """Nejnovější tag podle historie commitů (API řadí tagy abecedně, ne podle data)."""
-    repo = "sunecz/Media-Downloader"
-    by_sha = {}
-    for page in range(1, 6):
-        tags = get_json(f"https://api.github.com/repos/{repo}/tags?per_page=100&page={page}")
-        by_sha.update({t["commit"]["sha"]: t["name"] for t in tags})
-        if len(tags) < 100:
-            break
-    tag = None
-    for c in get_json(f"https://api.github.com/repos/{repo}/commits?per_page=100"):
-        if c["sha"] in by_sha:
-            tag = by_sha[c["sha"]]
-            break
-    if not tag:
-        return None
-    sha = sha256_of_url(f"https://github.com/{repo}/archive/refs/tags/{tag}.tar.gz")
-    return tag.lstrip("v"), (tag, sha)
+def n_m3u8dl_re():
+    for rel in github_releases("nilaoda/N_m3u8DL-RE"):
+        if rel.get("draft"):
+            continue
+        found = {}
+        for a in rel["assets"]:
+            m = re.fullmatch(r"N_m3u8DL-RE_.+_osx-(arm64|x64)_\d+\.tar\.gz", a["name"])
+            if m:
+                found[m.group(1)] = a
+        if len(found) == 2:
+            return rel["tag_name"].lstrip("v"), {
+                k: (v["browser_download_url"], asset_sha256(v)) for k, v in found.items()}
+    return None
 
 
 def vpsfree_client():
@@ -166,11 +161,13 @@ def apply_cask_single(text, version, sha):
     return re.sub(r'(?m)^(\s*sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
 
 
-def apply_formula_tag(text, version, payload):
-    tag, sha = payload
-    new = re.sub(r'(archive/refs/tags/)[^"]+(\.tar\.gz")', rf'\g<1>{tag}\g<2>', text, count=1)
-    new = re.sub(r'(?m)^(  version\s+")[^"]+(")', rf'\g<1>{version}\g<2>', new, count=1)
-    return re.sub(r'(?m)^(  sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
+def apply_formula_arch(text, version, assets):
+    new = re.sub(r'(?m)^(  version\s+")[^"]+(")', rf'\g<1>{version}\g<2>', text, count=1)
+    for block, key in ((r"if Hardware::CPU\.arm\?", "arm64"), ("else", "x64")):
+        url, sha = assets[key]
+        new = re.sub(rf'({block}\n\s+url ")[^"]+("\n\s+sha256 ")[0-9a-f]+(")',
+                     lambda m: f"{m.group(1)}{url}{m.group(2)}{sha}{m.group(3)}", new, count=1)
+    return new
 
 
 def apply_formula(text, version, sha):
@@ -185,7 +182,7 @@ PACKAGES = [
     ("Casks/nuvio@alpha.rb", nuvio, apply_cask),
     ("Casks/gitdesktop.rb", gitdesktop, apply_cask_single),
     ("Casks/removemacai.rb", removemacai, apply_cask_single),
-    ("Formula/media-downloader.rb", media_downloader, apply_formula_tag),
+    ("Formula/n-m3u8dl-re.rb", n_m3u8dl_re, apply_formula_arch),
     ("Formula/vpsfree-client.rb", vpsfree_client, apply_formula),
 ]
 
