@@ -8,6 +8,7 @@ brew install --cask toobab/tap/nuvio@alpha
 brew install --cask toobab/tap/gitdesktop
 brew install --cask toobab/tap/removemacai
 brew install toobab/tap/vpsfree-client
+brew install toobab/tap/wireproxy
 brew install toobab/tap/n-m3u8dl-re
 ```
 

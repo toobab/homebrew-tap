@@ -22,7 +22,8 @@ def parse_package(filepath):
     else:
         url_match = re.search(r'url\s+[\'"]([^\'"]+)[\'"]', content)
         if url_match:
-            ver_search = re.search(r'-(\d+\.\d+\.\d+[a-zA-Z0-9\-]*)', url_match.group(1))
+            ver_search = (re.search(r'/v?(\d+\.\d+\.\d+[a-zA-Z0-9.\-]*)/', url_match.group(1))
+                          or re.search(r'-(\d+\.\d+\.\d+[a-zA-Z0-9\-]*)', url_match.group(1)))
             if ver_search:
                 version_str = ver_search.group(1)
 

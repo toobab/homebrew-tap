@@ -141,6 +141,17 @@ def n_m3u8dl_re():
     return None
 
 
+def wireproxy():
+    def wanted(rel):
+        return {"all": "wireproxy_darwin_all.tar.gz"}
+
+    rel, assets = first_complete(github_releases("windtf/wireproxy"),
+                                 lambda r: not r["prerelease"], wanted)
+    if not rel:
+        return None
+    return rel["tag_name"].lstrip("v"), (rel["tag_name"], asset_sha256(assets["all"]))
+
+
 def vpsfree_client():
     with http("https://rubygems.org/api/v1/gems/vpsfree-client.json") as r:
         info = json.load(r)
@@ -170,6 +181,12 @@ def apply_formula_arch(text, version, assets):
     return new
 
 
+def apply_formula_release(text, version, payload):
+    tag, sha = payload
+    new = re.sub(r'(releases/download/)[^/]+(/)', rf'\g<1>{tag}\g<2>', text, count=1)
+    return re.sub(r'(?m)^(  sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
+
+
 def apply_formula(text, version, sha):
     new = re.sub(r'(vpsfree-client-)[0-9][^"/]*?(\.gem")', rf'\g<1>{version}\g<2>', text, count=1)
     new = re.sub(r'(?m)^(\s*sha256\s+")[0-9a-f]+(")', rf'\g<1>{sha}\g<2>', new, count=1)
@@ -183,12 +200,16 @@ PACKAGES = [
     ("Casks/gitdesktop.rb", gitdesktop, apply_cask_single),
     ("Casks/removemacai.rb", removemacai, apply_cask_single),
     ("Formula/n-m3u8dl-re.rb", n_m3u8dl_re, apply_formula_arch),
+    ("Formula/wireproxy.rb", wireproxy, apply_formula_release),
     ("Formula/vpsfree-client.rb", vpsfree_client, apply_formula),
 ]
 
 
 def current_version(text):
     m = re.search(r'(?m)^\s*version\s+"([^"]+)"', text)
+    if m:
+        return m.group(1)
+    m = re.search(r'releases/download/v?([^/"]+)/', text)
     if m:
         return m.group(1)
     m = re.search(r'vpsfree-client-([0-9][^"/]*?)\.gem"', text)
