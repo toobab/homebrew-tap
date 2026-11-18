@@ -1,7 +1,7 @@
 # repository: https://github.com/theBGuy/GitDesktop
 cask "gitdesktop" do
-  version "0.14.0"
-  sha256 "6404c0219e8a21be1495cd36f9c29a50f5f74daac5c682b6ae726fd0f8268fb9"
+  version "0.15.0"
+  sha256 "a796dff14ba97bf4f5f53447c88558bd3dac10b53223ce885bad3e838ab6af57"
 
   url "https://github.com/theBGuy/GitDesktop/releases/download/v#{version}/GitDesktop_#{version}_universal.dmg"
   name "GitDesktop"
