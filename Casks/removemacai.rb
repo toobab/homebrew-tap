@@ -1,7 +1,7 @@
 # repository: https://github.com/omlahore/RemoveMacAI
 cask "removemacai" do
-  version "1.2.1"
-  sha256 "f1d17285be5d955141f7692939c07994351ebd3f41afc5ae7ff5d1f3253011f5"
+  version "1.2.2"
+  sha256 "320bfe3c5b8dab3ace082ffa5be3e242d11a56d9218699219211651e605f9b90"
 
   url "https://github.com/omlahore/RemoveMacAI/releases/download/v#{version}/RemoveMacAI.zip"
   name "RemoveMacAI"
